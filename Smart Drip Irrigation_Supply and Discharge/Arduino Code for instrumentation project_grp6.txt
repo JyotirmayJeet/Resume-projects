@@ -1,0 +1,129 @@
+#include <Key.h>
+#include <Keypad.h>
+#include <LiquidCrystal.h>
+#include<Servo.h>
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+const byte ROWS = 4; //four rows
+const byte COLS = 4; //four columns
+int pin0 = 0;
+//int pin1 = 1;
+char Keys[ROWS][COLS] =
+{
+  {'D','C','B','A'},
+  {'#','9','6','3'},
+  {'0','8','5','2'},
+  {'*','7','4','1'}
+};
+byte rowPins[ROWS] = {6, 7, 8, A5}; //{R1, R2, R3, R4}
+byte colPins[COLS] = {A4, A3, A2, 13}; //{C1, C2, C3, C4}
+Keypad customKeypad = Keypad(makeKeymap(Keys), rowPins, colPins, ROWS, COLS);
+Servo s1,s2;
+const int sensor_pin = A0;
+const int sensor_pin1 = A1;
+//float a1=55;
+int th;  //set by user
+int re;
+int val;
+int scoreAdd = 0;
+int key;                                           // the key press
+int isnum;
+int ex=0;
+int res=0;
+void setup() {
+  // put your setup code here, to run once:
+Serial.begin(9600);
+s1.attach(9);
+s2.attach(10);
+lcd.begin(16, 2);
+pinMode(pin0, INPUT);
+//pinMode(pin1, OUTPUT);
+}
+//lcd.print("MEM=") ;
+//lcd.setCursor(0, 0);
+//lcd.clear();
+void loop() {
+  // put your main code here, to run repeatedly:
+  float a1,a2;
+  int sensor_analog;
+  sensor_analog = analogRead(sensor_pin);
+  int sensor_analog1;
+  delay(1000);
+  sensor_analog1 = analogRead(sensor_pin1);    
+  delay(1000);
+  a1 = ( 100 - ( (sensor_analog/1023.00) * 100 ) );
+  a2=( 100 - ( (sensor_analog1/1023.00) * 100 ) );
+  float c=min(a1,a2);
+  lcd.setCursor(0, 0);
+  lcd.print("MEM=") ;
+  lcd.setCursor(4, 0);
+  lcd.print(c) ;  
+  if(!ex)
+  {
+  scoreAdd=0;
+   do
+  {
+    key = customKeypad.getKey();                          // input the key
+    isnum = (key >= '0' && key <= '9');             // is it a digit?
+    if (isnum)
+    {
+      scoreAdd = scoreAdd * 10 + key - '0';         // accumulate the input number
+    }
+   if(scoreAdd>=10 && scoreAdd<100)
+   {
+     ex=1;
+   }
+} while (isnum || !key );
+  }
+  th=scoreAdd;
+  lcd.setCursor(10, 0);
+  lcd.print("RM=") ;
+  lcd.setCursor(13, 0);
+  lcd.print(th) ;
+  Serial.print(th);
+  Serial.print("%\n\n");
+ 
+  Serial.print("Moisture Percentage = ");
+  Serial.print(a1);
+  Serial.print("%\n\n");
+ 
+  re=digitalRead(pin0);
+   s2.write(90);
+     
+if((th-c <50 && th-c >10))
+{
+    s1.write(45);
+  lcd.setCursor(0,1);
+  lcd.print("V1=45 OP") ;
+}
+else if((th-c <70 && th-c >=50))
+{
+    s1.write(60);
+    lcd.setCursor(0,1);
+    lcd.print("V1=60 OP") ;
+}
+else if((th-c <100 && th-c >=70))
+{
+    s1.write(0);
+    lcd.setCursor(0,1);
+    lcd.print("V1=90 OP") ;
+   
+}
+else
+{
+  s1.write(90);
+  lcd.setCursor(0,1);
+  lcd.print("V1=00 CL") ;
+}
+lcd.setCursor(10, 1);
+lcd.print("V2=CL") ;
+if(re==0)
+{
+  s1.write(90);
+  lcd.setCursor(0,1);
+  lcd.print("V1=00 CL") ;
+  s2.write(0);
+  lcd.setCursor(10,1);
+  lcd.print("V2=OP") ;
+  //digitalWrite(pin1, re);
+}
+}
